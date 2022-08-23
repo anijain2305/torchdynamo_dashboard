@@ -9,18 +9,12 @@ import click
 import pandas as pd
 from tabulate import tabulate
 
+from dashboard.config import aot_eager
 from dashboard.config import dynamo_log_dir
+from dashboard.config import inductor
+from dashboard.config import lookup_file
+from dashboard.config import suites
 from dashboard.log_info import LogInfo
-
-lookup_file = os.path.join(dynamo_log_dir, "lookup.csv")
-assert os.path.exists(lookup_file)
-
-aot_eager = "aot_eager"
-inductor = "inductor_cudagraphs"
-suites = ["torchbench", "huggingface", "timm_models"]
-# suites = [
-#     "torchbench",
-# ]
 
 
 def get_date(log_info):
