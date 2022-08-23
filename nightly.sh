@@ -1,5 +1,5 @@
 #!/bin/bash --init-file
-set -e
+set -o errexit
 source /etc/profile
 source /data/home/$USER/.bashrc
 source /data/shared/bin/cluster_env.sh
@@ -16,15 +16,11 @@ eval "$(conda shell.bash hook)"
 
 
 echo "##### bash: starting ####"
-echo "Running Models"
-echo "${mode} run"
-echo $USER
-echo $IS_COVERAGE
-echo "dtype = ${DTYPE}"
 mode="performance"
-if [ $IS_COVERAGE == 1 ]; then
+if [[ $IS_COVERAGE == 1 ]]; then
     mode="coverage"
 fi
+echo "bash: USER=$USER, dtype=$DTYPE, coverage=$IS_COVERAGE, mode=$mode"
 
 scratch_dir="/scratch/$USER"
 top_dir="/scratch/$USER/dashboard"
@@ -32,6 +28,7 @@ work_dir="/scratch/$USER/dashboard/work"
 env_dir="/scratch/$USER/dashboard/env"
 zipped_file="/data/home/$USER/cluster/dashboard.tar.lz4"
 rm -rf $top_dir
+mkdir -p $top_dir
 mkdir -p $work_dir
 
 
@@ -41,16 +38,16 @@ new_zip_file="/scratch/$USER/dashboard.tar.lz4"
 lz4 -dc < $new_zip_file | tar xf - -C $scratch_dir
 
 
-# # This can be commented to make a new env
-# # echo "Making your working directory at: $work_dir"
-# # mkdir -p $work_dir
-# 
-# # echo "Setting your conda env directory at: $work_dir"
-# # cp $zipped_file $top_dir/
-# # new_zip_file="/scratch/$USER/dashboard/dashboard_env.tar.lz4"
-# # lz4 -dc < $new_zip_file | tar xf - -C $top_dir
-# # mv $top_dir/dashboard_env $env_dir
-# # mkdir -p $env_dir
+# # # This can be commented to make a new env
+# # # echo "Making your working directory at: $work_dir"
+# # # mkdir -p $work_dir
+# # 
+# # # echo "Setting your conda env directory at: $work_dir"
+# # # cp $zipped_file $top_dir/
+# # # new_zip_file="/scratch/$USER/dashboard/dashboard_env.tar.lz4"
+# # # lz4 -dc < $new_zip_file | tar xf - -C $top_dir
+# # # mv $top_dir/dashboard_env $env_dir
+# # # mkdir -p $env_dir
 
 echo "#### bash: Activating conda environment from $env_dir ####"
 conda activate $env_dir
@@ -64,14 +61,14 @@ conda install -y scikit-learn
 
 echo "#### bash: Cloning TorchDynamo ####"
 cd $work_dir
-git clone --recursive https://github.com/pytorch/torchdynamo.git
+# git clone --recursive https://github.com/pytorch/torchdynamo.git
 cd torchdynamo
 git fetch && git reset --hard origin/main
 # This could be done to test something quickly
 # git apply /data/home/$USER/cluster/dashboard.patch
 make setup
 
-echo "#### bash: Build dependenices ####"
+echo "#### bash: Building dependenices ####"
 # Setup flags for fast pytorch build
 # export CXX=clang++-10
 # export CC=clang-10
@@ -98,7 +95,7 @@ echo "#### bash: Building TorchDynamo ####"
 python setup.py develop
 
 echo "### bash: Running Models ####"
-if [ $IS_COVERAGE == 1 ]; then
+if [[ $IS_COVERAGE == 1 ]]; then
     python benchmarks/runner.py --suites=torchbench --suites=huggingface --suites=timm_models --profile_compiler --dtypes=float32 --output=bench_logs |& tee coverage.log
     mv coverage.log bench_logs/
 else
@@ -120,7 +117,7 @@ cp -rf $work_dir/torchdynamo/bench_logs/* $LOGDIR/
 cp -rf $work_dir/torchdynamo/bench_logs/* ${latest_dir}
 
 echo "#### bash: Make a comment #####"
-if [ $IS_COVERAGE == 1 ]; then
+if [[ $IS_COVERAGE == 1 ]]; then
     cd /fsx/users/anijain/cron_logs/${latest_dir}/
     cat gh_profile_compiler.txt > github_comment.txt
 else

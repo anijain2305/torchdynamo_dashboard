@@ -1,6 +1,6 @@
 mode="performance"
 
-if [ $IS_COVERAGE == 1 ]; then
+if [[ $IS_COVERAGE == 1 ]]; then
     mode="coverage"
 fi
 logfile="/fsx/users/anijain/cron_${mode}_${DTYPE}_${RANDOM}.job"
