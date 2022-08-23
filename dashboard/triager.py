@@ -1,3 +1,7 @@
+"""
+Usage - python triager.py --dtype=float32 --lastk=2
+"""
+
 import dataclasses
 import os
 from datetime import datetime
@@ -126,7 +130,6 @@ def parse(dtype, lastk):
     triaged_csv = os.path.join(dynamo_log_dir, f"triaged_{dtype}_{date_str}.csv")
     print(triaged_csv)
     df.to_csv(triaged_csv, mode="w", index=False)
-
 
 if __name__ == "__main__":
     parse()
