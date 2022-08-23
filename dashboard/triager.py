@@ -2,7 +2,6 @@
 Usage - python triager.py --dtype=float32 --lastk=2
 """
 
-import dataclasses
 import os
 from datetime import datetime
 
@@ -11,6 +10,7 @@ import pandas as pd
 from tabulate import tabulate
 
 from dashboard.config import dynamo_log_dir
+from dashboard.log_info import LogInfo
 
 lookup_file = os.path.join(dynamo_log_dir, "lookup.csv")
 assert os.path.exists(lookup_file)
@@ -21,15 +21,6 @@ suites = ["torchbench", "huggingface", "timm_models"]
 # suites = [
 #     "torchbench",
 # ]
-
-
-@dataclasses.dataclass
-class LogInfo:
-    # Day of the year this log was generated
-    day: str
-
-    # Directory path where all logs are present
-    dir_path: str
 
 
 def get_date(log_info):
@@ -127,9 +118,10 @@ def parse(dtype, lastk):
     tabform = tabulate(df, headers="keys", tablefmt="pretty", showindex="never")
     print(tabform)
     date_str = get_date(log_infos[0])
-    triaged_csv = os.path.join(dynamo_log_dir, f"triaged_{dtype}_{date_str}.csv")
+    triaged_csv = os.path.join(f"triaged_{dtype}_{date_str}.csv")
     print(triaged_csv)
     df.to_csv(triaged_csv, mode="w", index=False)
+
 
 if __name__ == "__main__":
     parse()

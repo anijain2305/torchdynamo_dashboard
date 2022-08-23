@@ -2,15 +2,14 @@
 python differ.py --dtype=float32 --day1=233 --day2=234
 """
 
-import dataclasses
 import os
-from datetime import datetime
 
 import click
 import pandas as pd
 from tabulate import tabulate
 
 from dashboard.config import dynamo_log_dir
+from dashboard.log_info import LogInfo
 
 lookup_file = os.path.join(dynamo_log_dir, "lookup.csv")
 assert os.path.exists(lookup_file)
@@ -21,15 +20,6 @@ suites = ["torchbench", "huggingface", "timm_models"]
 # suites = [
 #     "torchbench",
 # ]
-
-
-@dataclasses.dataclass
-class LogInfo:
-    # Day of the year this log was generated
-    day: str
-
-    # Directory path where all logs are present
-    dir_path: str
 
 
 def find_log(day, dtype):
