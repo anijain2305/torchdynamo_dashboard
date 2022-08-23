@@ -2,15 +2,13 @@
 python differ.py --dtype=float32 --day1=233 --day2=234
 """
 
+import argparse
 import os
 
-import click
 import pandas as pd
 from tabulate import tabulate
 
-from dashboard.config import aot_eager
 from dashboard.config import dynamo_log_dir
-from dashboard.config import inductor
 from dashboard.config import lookup_file
 from dashboard.config import suites
 from dashboard.log_info import LogInfo
@@ -36,10 +34,6 @@ def find_log(day, dtype):
     return df_gmean, df_passrate
 
 
-@click.command()
-@click.option("--dtype")
-@click.option("--day1", type=int)
-@click.option("--day2", type=int)
 def diff(dtype, day1, day2):
     df1_gmean, df1_passrate = find_log(day1, dtype)
     df2_gmean, df2_passrate = find_log(day2, dtype)
@@ -74,5 +68,9 @@ def diff(dtype, day1, day2):
 
 
 if __name__ == "__main__":
-    # parse()
-    diff()
+    parser = argparse.ArgumentParser(description="Tells which component is failing")
+    parser.add_argument("--dtype", required=True, type=str, help="dtype")
+    parser.add_argument("--day1", required=True, type=int, help="First day")
+    parser.add_argument("--day2", required=True, type=int, help="Second day")
+    args = parser.parse_args()
+    diff(args.dtype, args.day1, args.day2)

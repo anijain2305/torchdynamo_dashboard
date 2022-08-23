@@ -2,10 +2,10 @@
 Usage - python triager.py --dtype=float32 --lastk=2
 """
 
+import argparse
 import os
 from datetime import datetime
 
-import click
 import pandas as pd
 from tabulate import tabulate
 
@@ -57,9 +57,6 @@ def find_last_k(k, dtype):
     return log_infos
 
 
-@click.command()
-@click.option("--dtype")
-@click.option("--lastk", type=int)
 def parse(dtype, lastk):
     log_infos = find_last_k(lastk, dtype)
     all_dfs = []
@@ -118,4 +115,12 @@ def parse(dtype, lastk):
 
 
 if __name__ == "__main__":
-    parse()
+    parser = argparse.ArgumentParser(
+        description="Shows delta in executive summary between two days"
+    )
+    parser.add_argument("--dtype", required=True, type=str, help="dtype")
+    parser.add_argument(
+        "--lastk", required=True, type=int, help="Compare last k number of days"
+    )
+    args = parser.parse_args()
+    parse(args.dtype, args.lastk)
