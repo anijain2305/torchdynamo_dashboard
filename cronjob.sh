@@ -3,7 +3,7 @@ mode="performance"
 if [ $IS_COVERAGE == 1 ]; then
     mode="coverage"
 fi
-logfile="/fsx/users/anijain/cron_${mode}_${RANDOM}.job"
+logfile="/fsx/users/anijain/cron_${mode}_${DTYPE}_${RANDOM}.job"
 echo $logfile
 echo "Starting" > $logfile
 echo "HOME=$HOME" >> $logfile
