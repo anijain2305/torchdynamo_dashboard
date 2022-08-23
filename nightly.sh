@@ -1,4 +1,5 @@
 #!/bin/bash --init-file
+set -e
 source /etc/profile
 source /data/home/$USER/.bashrc
 source /data/shared/bin/cluster_env.sh
@@ -40,18 +41,18 @@ new_zip_file="/scratch/$USER/dashboard.tar.lz4"
 lz4 -dc < $new_zip_file | tar xf - -C $scratch_dir
 
 
-# echo "Making your working directory at: $work_dir"
-# mkdir -p $work_dir
-
-# echo "Setting your conda env directory at: $work_dir"
-# cp $zipped_file $top_dir/
-# new_zip_file="/scratch/$USER/dashboard/dashboard_env.tar.lz4"
-# lz4 -dc < $new_zip_file | tar xf - -C $top_dir
-# mv $top_dir/dashboard_env $env_dir
-# mkdir -p $env_dir
+# # This can be commented to make a new env
+# # echo "Making your working directory at: $work_dir"
+# # mkdir -p $work_dir
+# 
+# # echo "Setting your conda env directory at: $work_dir"
+# # cp $zipped_file $top_dir/
+# # new_zip_file="/scratch/$USER/dashboard/dashboard_env.tar.lz4"
+# # lz4 -dc < $new_zip_file | tar xf - -C $top_dir
+# # mv $top_dir/dashboard_env $env_dir
+# # mkdir -p $env_dir
 
 echo "#### bash: Activating conda environment from $env_dir ####"
-# conda create -y -p $CONDA_DIR
 conda activate $env_dir
 conda install -y astunparse numpy scipy ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six requests dataclasses protobuf numba cython
 conda install -y -c pytorch magma-cuda116
@@ -66,6 +67,7 @@ cd $work_dir
 git clone --recursive https://github.com/pytorch/torchdynamo.git
 cd torchdynamo
 git fetch && git reset --hard origin/main
+# This could be done to test something quickly
 # git apply /data/home/$USER/cluster/dashboard.patch
 make setup
 
@@ -116,8 +118,6 @@ rm -rf ${latest_dir}
 mkdir ${latest_dir}
 cp -rf $work_dir/torchdynamo/bench_logs/* $LOGDIR/
 cp -rf $work_dir/torchdynamo/bench_logs/* ${latest_dir}
-
-
 
 echo "#### bash: Make a comment #####"
 if [ $IS_COVERAGE == 1 ]; then
