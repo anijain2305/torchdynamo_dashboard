@@ -1,5 +1,5 @@
+#!/bin/bash
 mode="performance"
-
 if [[ $IS_COVERAGE == 1 ]]; then
     mode="coverage"
 fi
@@ -11,4 +11,5 @@ echo "PATH=$PATH" >> $logfile
 echo "SHELL=$SHELL" >> $logfile
 echo "USER=$USER" >> $logfile
 echo "mode=${mode}" >> $logfile
-srun -p train -G 1 -c96 --exclusive bash /data/home/anijain/cluster/torchdynamo_dashboard/nightly.sh 2&>1 >> $logfile
+srun -p train -G 1 -c96 --exclusive bash /data/home/anijain/cluster/torchdynamo_dashboard/nightly.sh >> $logfile
+# srun -p train -G 1 -c96 --exclusive bash /data/home/anijain/cluster/torchdynamo_dashboard/nightly.sh --output=$logfile

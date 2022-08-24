@@ -1,5 +1,5 @@
-#!/bin/bash --init-file
-set -o errexit
+#!/bin/bash
+set -xe
 source /etc/profile
 source /data/home/$USER/.bashrc
 source /data/shared/bin/cluster_env.sh
@@ -27,6 +27,7 @@ top_dir="/scratch/$USER/dashboard"
 work_dir="/scratch/$USER/dashboard/work"
 env_dir="/scratch/$USER/dashboard/env"
 zipped_file="/data/home/$USER/cluster/dashboard.tar.lz4"
+rm -rf $scratch_dir
 rm -rf $top_dir
 mkdir -p $top_dir
 mkdir -p $work_dir
@@ -51,12 +52,12 @@ lz4 -dc < $new_zip_file | tar xf - -C $scratch_dir
 
 echo "#### bash: Activating conda environment from $env_dir ####"
 conda activate $env_dir
-conda install -y astunparse numpy scipy ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six requests dataclasses protobuf numba cython
-conda install -y -c pytorch magma-cuda116
-conda install -y -c conda-forge librosa tqdm gh gitpython
-conda install -y -c anaconda certifi
-conda install -y pandas==1.4.2 pip git-lfs
-conda install -y scikit-learn
+conda install -y astunparse numpy scipy ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six requests dataclasses protobuf numba cython || true
+conda install -y -c pytorch magma-cuda116 || true
+conda install -y -c conda-forge librosa tqdm gh gitpython || true
+conda install -y -c anaconda certifi || true
+conda install -y pandas==1.4.2 pip git-lfs || true
+conda install -y scikit-learn || true
 
 
 echo "#### bash: Cloning TorchDynamo ####"
@@ -65,7 +66,7 @@ cd $work_dir
 cd torchdynamo
 git fetch && git reset --hard origin/main
 # This could be done to test something quickly
-# git apply /data/home/$USER/cluster/dashboard.patch
+git apply /data/home/$USER/cluster/dashboard.patch
 make setup
 
 echo "#### bash: Building dependenices ####"
@@ -86,7 +87,7 @@ export USE_PYTORCH_QNNPACK=0
 export USE_GOLD_LINKER=1
 export DEBUG=0
 make pull-deps
-make build-deps
+make build-deps || true
 python -m pip uninstall -y transformers
 python -m pip uninstall -y timm
 python -m pip install transformers timm
@@ -94,12 +95,12 @@ python -m pip install transformers timm
 echo "#### bash: Building TorchDynamo ####"
 python setup.py develop
 
-echo "### bash: Running Models ####"
+echo "#### bash: Running Models ####"
 if [[ $IS_COVERAGE == 1 ]]; then
-    python benchmarks/runner.py --suites=torchbench --suites=huggingface --suites=timm_models --profile_compiler --dtypes=float32 --output=bench_logs |& tee coverage.log
+    python benchmarks/runner.py --suites=torchbench --suites=huggingface --suites=timm_models --profile_compiler --dtypes=float32 --output=bench_logs |& tee coverage.log || true
     mv coverage.log bench_logs/
 else
-    python benchmarks/runner.py --suites=torchbench --suites=huggingface --suites=timm_models --training --dtypes=${DTYPE} --output-dir=bench_logs |& tee benchmarking.log
+    python benchmarks/runner.py --suites=torchbench --suites=huggingface --suites=timm_models --training --dtypes=${DTYPE} --output-dir=bench_logs |& tee benchmarking.log || true
     mv benchmarking.log bench_logs/
 fi
 
@@ -110,20 +111,14 @@ DATE=`date +%m_%d_%y`
 LOGDIR="day_${DAY}_${DATE}_${mode}_${DTYPE}_${RANDOM}"
 echo "${DAY},${mode},${DTYPE},${LOGDIR}" >> lookup.csv
 mkdir $LOGDIR
-latest_dir=latest_${mode}_${DTYPE}
-rm -rf ${latest_dir}
-mkdir ${latest_dir}
 cp -rf $work_dir/torchdynamo/bench_logs/* $LOGDIR/
-cp -rf $work_dir/torchdynamo/bench_logs/* ${latest_dir}
+cd $LOGDIR
 
 echo "#### bash: Make a comment #####"
 if [[ $IS_COVERAGE == 1 ]]; then
-    cd /fsx/users/anijain/cron_logs/${latest_dir}/
     cat gh_profile_compiler.txt > github_comment.txt
 else
-    cd /fsx/users/anijain/cron_logs/${latest_dir}/
     cat gh_training.txt gh_build_summary.txt > github_comment.txt
-
     echo "## Graphs ##" >> github_comment.txt
     for i in *.png; do
         echo "$i : ![](`/fsx/users/anijain/bin/imgur.sh $i`)" >> github_comment.txt
@@ -131,6 +126,5 @@ else
 fi
 
 cd /fsx/users/anijain/torchdynamo
-/data/home/anijain/miniconda/bin/gh issue comment 681 -F /fsx/users/anijain/cron_logs/${latest_dir}/github_comment.txt
-rm -fr /fsx/users/anijain/cron_logs/${latest_dir}
+/data/home/anijain/miniconda/bin/gh issue comment 681 -F /fsx/users/anijain/cron_logs/${LOGDIR}/github_comment.txt
 echo "### bash: Finished ####"
