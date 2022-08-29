@@ -3,6 +3,7 @@ Usage - python triager.py --dtype=float32 --lastk=2
 """
 
 import argparse
+import logging
 import os
 from datetime import datetime
 
@@ -11,6 +12,7 @@ from tabulate import tabulate
 
 from dashboard.config import aot_eager
 from dashboard.config import dynamo_log_dir
+from dashboard.config import eager
 from dashboard.config import inductor
 from dashboard.config import lookup_file
 from dashboard.config import suites
@@ -62,8 +64,6 @@ def parse(dtype, lastk):
     print(log_infos)
     all_dfs = []
 
-
-
     # Number of models can change over time. So, first look at the last col to figure out the latest models
     allowed_models = {}
     for suite in suites:
@@ -91,16 +91,25 @@ def parse(dtype, lastk):
             # Get these strings common from runner.py
             models = None
             failing = {}
-            for compiler in [aot_eager, inductor]:
+            for compiler in [eager, aot_eager, inductor]:
                 output_filename = f"{compiler}_{suite}_{dtype}_training_cuda.csv"
                 output_filename = os.path.join(dir_path, output_filename)
-                assert os.path.exists(output_filename), f"{output_filename} not found"
-                df = read_csv(output_filename)
-                df = df[df["speedup"] == 0.0]
-                failing[compiler] = set(df["name"].to_list())
+                if os.path.exists(output_filename):
+                    assert os.path.exists(
+                        output_filename
+                    ), f"{output_filename} not found"
+                    df = read_csv(output_filename)
+                    df = df[df["speedup"] == 0.0]
+                    failing[compiler] = set(df["name"].to_list())
+                else:
+                    logging.warn(f"{output_filename} not found")
+                    failing[compiler] = set()
 
-            only_inductor_fails = failing[inductor] - failing[aot_eager]
-            only_aot_eager = failing[aot_eager]
+            only_inductor_fails = (
+                failing[inductor] - failing[aot_eager] - failing[eager]
+            )
+            only_aot_eager = failing[aot_eager] - failing[eager]
+            only_eager = failing[eager]
             passing = allowed_models[suite] - failing[inductor]
 
             triaged = []
@@ -111,6 +120,8 @@ def parse(dtype, lastk):
                     triaged.append("inductor")
                 elif model in only_aot_eager:
                     triaged.append("aot")
+                elif model in only_eager:
+                    triaged.append("eager")
                 else:
                     raise RuntimeError("Something bad happened")
 

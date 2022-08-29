@@ -1,6 +1,7 @@
 import os
 
 dynamo_log_dir = "/data/home/anijain/cluster/cron_logs"
+eager = "eager"
 aot_eager = "aot_eager"
 inductor = "inductor_cudagraphs"
 suites = ["torchbench", "huggingface", "timm_models"]
