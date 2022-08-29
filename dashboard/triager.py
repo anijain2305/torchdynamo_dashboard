@@ -59,7 +59,28 @@ def find_last_k(k, dtype):
 
 def parse(dtype, lastk):
     log_infos = find_last_k(lastk, dtype)
+    print(log_infos)
     all_dfs = []
+
+
+
+    # Number of models can change over time. So, first look at the last col to figure out the latest models
+    allowed_models = {}
+    for suite in suites:
+        log_info = log_infos[-1]
+        dir_path = os.path.join(dynamo_log_dir, log_info.dir_path)
+        # Get these strings common from runner.py
+        models = None
+        compiler = aot_eager
+        output_filename = f"{compiler}_{suite}_{dtype}_training_cuda.csv"
+        output_filename = os.path.join(dir_path, output_filename)
+        assert os.path.exists(output_filename), f"{output_filename} not found"
+        # print(output_filename)
+        df = read_csv(output_filename)
+        if models is None:
+            models = set(df["name"].to_list())
+        allowed_models[suite] = models
+
     for suite in suites:
         columns = {}
         for log_info in log_infos:
@@ -74,19 +95,16 @@ def parse(dtype, lastk):
                 output_filename = f"{compiler}_{suite}_{dtype}_training_cuda.csv"
                 output_filename = os.path.join(dir_path, output_filename)
                 assert os.path.exists(output_filename), f"{output_filename} not found"
-                # print(output_filename)
                 df = read_csv(output_filename)
-                if models is None:
-                    models = set(df["name"].to_list())
                 df = df[df["speedup"] == 0.0]
                 failing[compiler] = set(df["name"].to_list())
 
             only_inductor_fails = failing[inductor] - failing[aot_eager]
             only_aot_eager = failing[aot_eager]
-            passing = models - failing[inductor]
+            passing = allowed_models[suite] - failing[inductor]
 
             triaged = []
-            for model in sorted(models):
+            for model in sorted(allowed_models[suite]):
                 if model in passing:
                     triaged.append("pass")
                 elif model in only_inductor_fails:
@@ -97,9 +115,9 @@ def parse(dtype, lastk):
                     raise RuntimeError("Something bad happened")
 
             if "name" not in columns:
-                columns["suite"] = [suite] * len(models)
-                columns["name"] = list(sorted(models))
-                columns["issue"] = [""] * len(models)
+                columns["suite"] = [suite] * len(allowed_models[suite])
+                columns["name"] = list(sorted(allowed_models[suite]))
+                columns["issue"] = [""] * len(allowed_models[suite])
             columns[get_date(log_info)] = triaged
 
         triaged_df = pd.DataFrame(columns)

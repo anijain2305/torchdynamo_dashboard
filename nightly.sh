@@ -27,7 +27,6 @@ top_dir="/scratch/$USER/dashboard"
 work_dir="/scratch/$USER/dashboard/work"
 env_dir="/scratch/$USER/dashboard/env"
 zipped_file="/data/home/$USER/cluster/dashboard.tar.lz4"
-rm -rf $scratch_dir
 rm -rf $top_dir
 mkdir -p $top_dir
 mkdir -p $work_dir
@@ -58,7 +57,8 @@ conda install -y -c conda-forge librosa tqdm gh gitpython || true
 conda install -y -c anaconda certifi || true
 conda install -y pandas==1.4.2 pip git-lfs || true
 conda install -y scikit-learn || true
-
+# Set the LD_LIBRARY PATH to first look into miniconda libs
+export LD_LIBRARY_PATH=$env_dir/lib:${LD_LIBRARY_PATH}
 
 echo "#### bash: Cloning TorchDynamo ####"
 cd $work_dir
@@ -66,7 +66,7 @@ cd $work_dir
 cd torchdynamo
 git fetch && git reset --hard origin/main
 # This could be done to test something quickly
-git apply /data/home/$USER/cluster/dashboard.patch
+# git apply /data/home/$USER/cluster/dashboard.patch
 make setup
 
 echo "#### bash: Building dependenices ####"
