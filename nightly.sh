@@ -118,10 +118,26 @@ echo "#### bash: Make a comment #####"
 if [[ $IS_COVERAGE == 1 ]]; then
     cat gh_profile_compiler.txt > github_comment.txt
 else
+
+    # Graphs for over time
+    cd /fsx/users/anijain/torchdynamo_dashboard/dashboard && python regression_tracker.py --dtype=${DTYPE} --lastk=8 --output-dir=/fsx/users/anijain/cron_logs/$LOGDIR || true
+
+    rm -rf temp.log
+    touch temp.log
+    echo "## Performance and Passrate over time ##" >> temp.log
+    for i in *_over_time.png; do
+        echo "$i : ![](`/fsx/users/anijain/bin/imgur.sh $i`)" >> temp.log
+    done
+    sed -i '3r temp.log' /fsx/users/anijain/cron_logs/$LOGDIR/gh_training.txt || true
+
+    cd /fsx/users/anijain/cron_logs/$LOGDIR
+
     cat gh_training.txt gh_build_summary.txt > github_comment.txt
     echo "## Graphs ##" >> github_comment.txt
     for i in *.png; do
-        echo "$i : ![](`/fsx/users/anijain/bin/imgur.sh $i`)" >> github_comment.txt
+        if [[ ${i} != *"over_time"* ]]; then
+            echo "$i : ![](`/fsx/users/anijain/bin/imgur.sh $i`)" >> github_comment.txt
+        fi
     done
 fi
 
