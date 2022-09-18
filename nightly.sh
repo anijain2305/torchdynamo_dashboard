@@ -51,7 +51,8 @@ lz4 -dc < $new_zip_file | tar xf - -C $scratch_dir
 
 echo "#### bash: Activating conda environment from $env_dir ####"
 conda activate $env_dir
-conda install -y astunparse numpy scipy ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six requests dataclasses protobuf numba cython || true
+conda install -y astunparse numpy scipy ninja pyyaml mkl mkl-include setuptools cffi typing_extensions future six requests dataclasses protobuf numba cython || true
+python -m pip install cmake==3.22.5
 conda install -y -c pytorch magma-cuda116 || true
 conda install -y -c conda-forge librosa tqdm gh gitpython || true
 conda install -y -c anaconda certifi || true
@@ -66,7 +67,7 @@ cd $work_dir
 cd torchdynamo
 git fetch && git reset --hard origin/main
 # This could be done to test something quickly
-# git apply /data/home/$USER/cluster/dashboard.patch
+# git apply /data/home/$USER/cluster/dashboard.patch || true
 make setup
 
 echo "#### bash: Building dependenices ####"
@@ -122,6 +123,7 @@ else
     # Graphs for over time
     cd /fsx/users/anijain/torchdynamo_dashboard/dashboard && python regression_tracker.py --dtype=${DTYPE} --lastk=8 --output-dir=/fsx/users/anijain/cron_logs/$LOGDIR || true
 
+    cd /fsx/users/anijain/cron_logs/$LOGDIR
     rm -rf temp.log
     touch temp.log
     echo "## Performance and Passrate over time ##" >> temp.log
