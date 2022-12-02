@@ -20,7 +20,7 @@ mode="performance"
 if [[ $IS_COVERAGE == 1 ]]; then
     mode="coverage"
 fi
-echo "bash: USER=$USER, dtype=$DTYPE, coverage=$IS_COVERAGE, mode=$mode"
+echo "bash: USER=$USER, dtype=$DTYPE, coverage=$IS_COVERAGE, mode=$mode, nightly=$IS_NIGHTLY"
 
 scratch_dir="/scratch/$USER"
 top_dir="/scratch/$USER/dashboard"
@@ -50,41 +50,65 @@ conda install -y scikit-learn || true
 # HACK - For some reason I need this
 export LD_LIBRARY_PATH=$env_dir/lib:${LD_LIBRARY_PATH}
 
-echo "#### bash: Cloning Pytorch ####"
 cd $work_dir
-rm -fr torchdynamo # FIXME
-cd pytorch
-git fetch && git reset --hard origin/master && git submodule sync && git submodule update --init --recursive --jobs 0
-# git apply /data/home/$USER/cluster/dashboard.patch
+if [[ $IS_NIGHTLY == 1 ]]; then
+    echo "#### bash: Cloning nightly PyTorch ####"
+    test -e pytorch || git clone --recursive https://github.com/pytorch/pytorch.git pytorch
+    cd pytorch
+    git fetch && git reset --hard origin/nightly && git submodule sync && git submodule update --init --recursive --jobs 0
 
-echo "#### bash: Building dependenices ####"
-# Setup flags for fast pytorch build
-# export CXX=clang++-10
-# export CC=clang-10
-# export CXXFLAGS="-fno-omit-frame-pointer -mno-omit-leaf-frame-pointer"
-export USE_CUDA=1
-export REL_WITH_DEB_INFO=1
-export BUILD_CAFFE2=0
-export USE_XNNPACK=0
-export USE_FBGEMM=0
-export USE_QNNPACK=0
-export USE_NNPACK=0
-export BUILD_TEST=0
-export USE_GOLD_LINKER=1
-export USE_PYTORCH_QNNPACK=0
-export USE_GOLD_LINKER=1
-export DEBUG=0
-python setup.py clean && python setup.py develop
+    echo "#### bash: Installing nightly PyTorch and dependencies ####"
+    python -m pip uninstall torch torchvision torchaudio torchdata torchtext 
+    python -m pip install --pre torch torchvision torchaudio torchdata torchtext --extra-index-url https://download.pytorch.org/whl/nightly/cu116
+    python -m pip uninstall detectron2
+    python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
+    TRITON_VERSION=$(cat .github/ci_commit_pins/triton.txt)
+    python -m pip uninstall triton
+    python -m pip install -U "git+https://github.com/openai/triton@${TRITON_VERSION}#subdirectory=python"
+    cd ../
 
-python -m pip install regex
-cd benchmarks/dynamo
-make -f Makefile_dashboard pull-deps
-make -f Makefile_dashboard build-deps
+    test -e torchbenchmark || git clone --recursive https://github.com/pytorch/benchmark torchbenchmark
+    cd torchbenchmark && git pull && git submodule update --init --recursive
+    python install.py --continue_on_fail
+    cd ../pytorch
+else
+    echo "#### bash: Cloning Pytorch ####"
+    rm -fr torchdynamo # FIXME
+    test -e pytorch || git clone --recursive https://github.com/pytorch/pytorch.git pytorch
+    cd pytorch
+    git fetch && git reset --hard origin/master && git submodule sync && git submodule update --init --recursive --jobs 0
+    # git apply /data/home/$USER/cluster/dashboard.patch
+
+    echo "#### bash: Building dependenices ####"
+    # Setup flags for fast pytorch build
+    # export CXX=clang++-10
+    # export CC=clang-10
+    # export CXXFLAGS="-fno-omit-frame-pointer -mno-omit-leaf-frame-pointer"
+    export USE_CUDA=1
+    export REL_WITH_DEB_INFO=1
+    export BUILD_CAFFE2=0
+    export USE_XNNPACK=0
+    export USE_FBGEMM=0
+    export USE_QNNPACK=0
+    export USE_NNPACK=0
+    export BUILD_TEST=0
+    export USE_GOLD_LINKER=1
+    export USE_PYTORCH_QNNPACK=0
+    export USE_GOLD_LINKER=1
+    export DEBUG=0
+    python setup.py clean && python setup.py develop
+
+    python -m pip install regex
+    cd benchmarks/dynamo
+    make -f Makefile_dashboard pull-deps
+    make -f Makefile_dashboard build-deps
+    # ln -fs $env_dir/bin/g++ $env_dir/bin/g++-12
+    cd ../..
+fi
+
 python -m pip uninstall -y transformers
 python -m pip uninstall -y timm
 python -m pip install transformers timm
-# ln -fs $env_dir/bin/g++ $env_dir/bin/g++-12
-
 
 # Remove the triton cache
 rm -fr /tmp/torchinductor_$USER/
