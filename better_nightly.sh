@@ -116,8 +116,7 @@ rm -fr /tmp/torchinductor_$USER/
 echo "#### bash: Running Models ####"
 # HACK - For some reason I need to set PYTHONPATH
 #PYTHONPATH=/scratch/$USER/dashboard/work/torchdynamo 
-cd ../..
-python benchmarks/dynamo/runner.py --suites=torchbench --suites=huggingface --suites=timm_models --training --dtypes=${DTYPE} --output-dir=bench_logs --update-dashboard
+python benchmarks/dynamo/runner.py --suites=torchbench --suites=huggingface --suites=timm_models --training --dtypes=${DTYPE} --output-dir=bench_logs --update-dashboard --dashboard-archive-path=/data/home/$USER/cluster/cron_logs/
 # python benchmarks/dynamo/runner.py --suites=huggingface --compilers=aot_eager --compilers=inductor --training --dtypes=${DTYPE} --output-dir=bench_logs --update-dashboard
 # python benchmarks/runner.py --suites=torchbench --training --dtypes=${DTYPE} --output-dir=bench_logs --update-dashboard
 echo "### bash: Finished ####"
