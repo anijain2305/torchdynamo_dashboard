@@ -100,8 +100,8 @@ else
 
     python -m pip install regex
     cd benchmarks/dynamo
-    make -f Makefile_dashboard pull-deps
-    make -f Makefile_dashboard build-deps
+    make pull-deps
+    make build-deps
     # ln -fs $env_dir/bin/g++ $env_dir/bin/g++-12
     cd ../..
 fi
