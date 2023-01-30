@@ -55,7 +55,7 @@ if [[ $IS_NIGHTLY == 1 ]]; then
     echo "#### bash: Cloning nightly PyTorch ####"
     test -e pytorch || git clone --recursive https://github.com/pytorch/pytorch.git pytorch
     cd pytorch
-    git fetch && git reset --hard origin/nightly && git submodule sync && git submodule update --init --recursive --jobs 0
+    git fetch && git reset --hard origin/nightly && git submodule sync && git submodule update --init --recursive --jobs 0 --force
 
     echo "#### bash: Installing nightly PyTorch and dependencies ####"
     python -m pip uninstall torch torchvision torchaudio torchdata torchtext 
@@ -76,7 +76,7 @@ else
     rm -fr torchdynamo # FIXME
     test -e pytorch || git clone --recursive https://github.com/pytorch/pytorch.git pytorch
     cd pytorch
-    git fetch && git reset --hard origin/master && git submodule sync && git submodule update --init --recursive --jobs 0
+    git fetch && git reset --hard origin/master && git submodule sync && git submodule update --init --recursive --jobs 0 --force
     # git apply /data/home/$USER/cluster/dashboard.patch
 
     echo "#### bash: Building dependenices ####"
